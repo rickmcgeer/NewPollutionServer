@@ -16,6 +16,7 @@ data = {}
 # initialize and read the data
 #
 def loadDataSet():
+    global data
     data = {}
     for fileName in datafiles: execfile(fileName)
 
@@ -91,6 +92,8 @@ def printReport(year, month, res):
 # print an inventory of what we have
 #
 def printInventory():
+    print 'Printing Inventory of loaded data.  '
+    print 'Data Files are: ' + ', '.join(datafiles)
     iterateOverDataSetAndDo(printReport)
 
 #
