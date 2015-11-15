@@ -90,9 +90,8 @@ def get_times():
     if query['error']:
         return 'Error in request ' + query['message']
     else:
-        checkData = checkDatasetExists(query['year'], query['month'], query['res'])
-        if (not checkData[0]):
-            return checkData[1]
+        if (not checkDatasetExists(query['year'], query['month'], query['res'])):
+            return "Dataset %s is not loaded" % convertToString(query['year'], query['month'], query['res'])
         stats = getStats(query['year'], query['month'], query['res'],
                    query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
         return 'Found %d points in %f milliseconds' % (stats['pts'], stats['ms'])
