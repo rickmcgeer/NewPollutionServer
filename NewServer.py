@@ -120,7 +120,7 @@ def get_data():
                query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
 
 @app.route('/get_data_readable')
-def get_data():
+def get_data_readable():
     query = parseAndCheck(request)
     if (query['error']):
         return query['message']
