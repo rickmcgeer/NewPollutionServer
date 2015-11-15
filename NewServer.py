@@ -96,6 +96,12 @@ def get_times():
                    query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
         return 'Found %d points in %f milliseconds' % (stats['pts'], stats['ms'])
 
+@app.route('/show_inventory')
+def get_inventory():
+    var datafileList = 'Datafiles: %s' + ', '.join(datafiles)
+    inventory = '\n'.join(getInventory())
+    return datafileList + '\nData sets loaded\n' + inventory
+
 @app.route('/get_data')
 def get_data():
     query = parseRequest(request, fullParseFields)
@@ -114,4 +120,5 @@ if __name__ == '__main__':
     # app.debug = True
     loadDataSet()
     printInventory()
+    checkExistenceSanityCheck()
     app.run(host='0.0.0.0', port=port)

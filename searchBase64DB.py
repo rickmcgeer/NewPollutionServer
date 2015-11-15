@@ -89,12 +89,40 @@ def printReport(year, month, res):
     print convertToString(year, month, res)
 
 #
+# checkExistenceSanityCheckReport: designed to be called
+# from checkExistenceSanityCheck -- just makes sure that
+# checkDatasetExists returns True for all loaded data sets
+#
+def checkExistenceSanityCheckReport(year, month, res):
+    if not checkDatasetExists(year, month, res):
+        print 'Error: checkDatasetExists failed for ' + convertToString(year, month, res)
+#
+# Ensure checkDatasetExists returns True for all loaded data sets
+#
+def checkExistenceSanityCheck():
+    iterateOverDataSetAndDo(checkExistenceSanityCheckReport)
+
+#
 # print an inventory of what we have
 #
 def printInventory():
     print 'Printing Inventory of loaded data.  '
     print 'Data Files are: ' + ', '.join(datafiles)
     iterateOverDataSetAndDo(printReport)
+
+#
+# getInventory: return everything we have loaded.  Should use the
+# iterate meta but I need to figure out how to make that return a List
+# returns a list of human-readable strings rather than tuples
+#
+def getInventory():
+    result = []
+    for year in data:
+        for month in data[year]:
+            for res in data[year][month]:
+                result.append(convertToString(year, month, data))
+    return result
+
 
 #
 # Now we get to it...actually searching the data
