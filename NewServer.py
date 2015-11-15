@@ -114,4 +114,5 @@ if __name__ == '__main__':
     # print memory()
     app.debug = True
     loadDataSet()
+    printInventory()
     app.run(host='0.0.0.0', port=port)
