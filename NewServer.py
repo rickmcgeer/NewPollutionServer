@@ -103,18 +103,15 @@ def get_data():
     if query['error']:
         return 'Error in request ' + query['message']
     else:
-        checkData = checkDatasetExists(query['year'], query['month'], query['res'])
-        if (not checkData[0]):
-            return checkData[1]
+        if (not checkDatasetExists(query['year'], query['month'], query['res'])):
+            return "Dataset %s is not loaded" % convertToString(query['year'], query['month'], query['res'])
         return searchDB(query['year'], query['month'], query['res'],
                    query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
-
-
-
 
 if __name__ == '__main__':
     # for fileName in yearFiles:
     #     execfile(fileName)
     # print memory()
     app.debug = True
+    loadDataSet()
     app.run(host='0.0.0.0', port=port)

@@ -11,6 +11,7 @@ from config import dataDirectory
 datafiles = filter(lambda x: x.startswith('data_'), listdir(dataDirectory))
 datafiles = filter(isfile, [join(dataDirectory, fileName) for fileName in datafiles])
 
+data = {}
 #
 # initialize and read the data
 #
