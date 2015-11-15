@@ -108,7 +108,9 @@ def get_times():
 @app.route('/show_inventory')
 def get_inventory():
     datafileList = 'Datafiles: %s' + ', '.join(datafiles)
+    print datafileList
     inventory = '\n'.join(getInventory())
+    print inventory
     return datafileList + '\nData sets loaded\n' + inventory
 
 @app.route('/get_data')
@@ -132,7 +134,7 @@ if __name__ == '__main__':
     # for fileName in yearFiles:
     #     execfile(fileName)
     # print memory()
-    app.debug = True
+    # app.debug = True
     loadDataSet()
     printInventory()
     checkExistenceSanityCheck()
