@@ -152,18 +152,30 @@ class BoundingBox:
     def __repr__(self):
         return '(nw: %s, se:%s)' % (self.nwIndex.__repr__(), self.seIndex.__repr__())
 
+#
 # Get the data from dataset for the bounding box given by
 # (nw, se) where each is given by a pair (lat, long).  In fact
 # these are four scalar variables.  Latitude is given in the
 # conventional range, (-89.9 to 89.9), where -89.9 is the South Pole and
 # 89.9 is the north pole.  Similarly, -179.9 is just east of the dateline,
-# 179.9 is just west of the dateline.
+# 179.9 is just west of the dateline.  This routine returns a list of
+# strings, one per row.  The subsequent method returns as a single string
 #
 
-def getData(nw, se, pointsPerDegree, dataSet):
+def getDataAsSequences(nw, se, pointsPerDegree, dataSet):
     bbox = BoundingBox(nw, se, pointsPerDegree)
     indexSet = bbox.getIndexSequences()
     sequences = [dataSet[sn['firstIndex']:sn['lastIndex']] for sn in indexSet]
+    return sequences
+#
+# Get the data from dataset for the bounding box given by
+# (nw, se) where each is given by a pair (lat, long).  This returns the result
+# from getData as a single string, which is what will generally be used; a routine
+# which calls getDataAsSequences directly does it to support human-readability for debugging.
+#
+
+def getData(nw, se, pointsPerDegree, dataSet):
+    sequences = getDataAsSequences(nw, se, pointsPerDegree, dataSet)
     return ''.join(sequences)
 
 #

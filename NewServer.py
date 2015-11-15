@@ -84,17 +84,26 @@ def test_full():
     else:
         return json.dumps(result)
 
-@app.route('/get_time')
-def get_times():
+def parseAndCheck(request):
     query = parseRequest(request, fullParseFields)
     if query['error']:
-        return 'Error in request ' + query['message']
+        query['message'] = 'Error in request ' + query['message']
+        return query
+    if (not checkDatasetExists(query['year'], query['month'], query['res'])):
+        query['error'] = True
+        query['message'] = "Dataset %s is not loaded" % convertToString(query['year'], query['month'], query['res'])
     else:
-        if (not checkDatasetExists(query['year'], query['month'], query['res'])):
-            return "Dataset %s is not loaded" % convertToString(query['year'], query['month'], query['res'])
-        stats = getStats(query['year'], query['month'], query['res'],
-                   query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
-        return 'Found %d points in %f milliseconds' % (stats['pts'], stats['ms'])
+        query['error'] = False
+    return query
+
+@app.route('/get_time')
+def get_times():
+    query = parseAndCheck(request)
+    if (query['error']):
+        return query['message']
+    stats = getStats(query['year'], query['month'], query['res'],
+               query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
+    return 'Found %d points in %f milliseconds' % (stats['pts'], stats['ms'])
 
 @app.route('/show_inventory')
 def get_inventory():
@@ -104,20 +113,26 @@ def get_inventory():
 
 @app.route('/get_data')
 def get_data():
-    query = parseRequest(request, fullParseFields)
-    if query['error']:
-        return 'Error in request ' + query['message']
-    else:
-        if (not checkDatasetExists(query['year'], query['month'], query['res'])):
-            return "Dataset %s is not loaded" % convertToString(query['year'], query['month'], query['res'])
-        return searchDB(query['year'], query['month'], query['res'],
-                   query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
+    query = parseAndCheck(request)
+    if (query['error']):
+        return query['message']
+    return searchDB(query['year'], query['month'], query['res'],
+               query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
+
+@app.route('/get_data_readable')
+def get_data():
+    query = parseAndCheck(request)
+    if (query['error']):
+        return query['message']
+    sequences = searchDBReturnRows(query['year'], query['month'], query['res'],
+               query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
+    return '\n'.join(sequences)
 
 if __name__ == '__main__':
     # for fileName in yearFiles:
     #     execfile(fileName)
     # print memory()
-    # app.debug = True
+    app.debug = True
     loadDataSet()
     printInventory()
     checkExistenceSanityCheck()

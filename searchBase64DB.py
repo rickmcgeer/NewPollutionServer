@@ -146,11 +146,18 @@ def checkQuery(year, month, res, nwLat, seLat, nwLon, seLon):
     return (True, "OK")
 #
 # Actually Search the DB for a matching string.  No checking: call first if
-# you want this checked.
+# you want this checked.  Result is a String, row-major order
 #
 def searchDB(year, month, res, nwLat, seLat, nwLon, seLon):
     return getData(Coordinate(nwLat, nwLon), Coordinate(seLat, seLon), res, data[year][month][res])
 
+
+#
+# Actually Search the DB for a matching string.  No checking: call first if
+# you want this checked.  Result is a list of sequences, one per row
+#
+def searchDBReturnRows(year, month, res, nwLat, seLat, nwLon, seLon):
+    return getDataAsSequences(Coordinate(nwLat, nwLon), Coordinate(seLat, seLon), res, data[year][month][res])
 import time
 
 #
