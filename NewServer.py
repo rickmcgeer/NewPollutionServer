@@ -98,7 +98,7 @@ def get_times():
 
 @app.route('/show_inventory')
 def get_inventory():
-    var datafileList = 'Datafiles: %s' + ', '.join(datafiles)
+    datafileList = 'Datafiles: %s' + ', '.join(datafiles)
     inventory = '\n'.join(getInventory())
     return datafileList + '\nData sets loaded\n' + inventory
 
