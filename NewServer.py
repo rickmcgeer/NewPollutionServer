@@ -111,7 +111,7 @@ if __name__ == '__main__':
     # for fileName in yearFiles:
     #     execfile(fileName)
     # print memory()
-    app.debug = True
+    # app.debug = True
     loadDataSet()
     printInventory()
     app.run(host='0.0.0.0', port=port)
