@@ -120,7 +120,7 @@ def getInventory():
     for year in data:
         for month in data[year]:
             for res in data[year][month]:
-                result.append(convertToString(year, month, data))
+                result.append(convertToString(year, month, res))
     return result
 
 

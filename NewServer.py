@@ -107,7 +107,7 @@ def get_times():
 
 @app.route('/show_inventory')
 def get_inventory():
-    datafileList = 'Datafiles: %s' + ', '.join(datafiles)
+    datafileList = 'Datafiles: ' + ', '.join(datafiles)
     print datafileList
     inventory = '\n'.join(getInventory())
     print inventory
