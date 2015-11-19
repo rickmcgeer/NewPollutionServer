@@ -7,17 +7,46 @@ def fullSetSize(pointsPerDegree):
     return 360 * 180 * pointsPerDegree * pointsPerDegree
 
 #
-# A Coordinate, just a lat/lon pair
+# Initialize the parameters
+#
+class OffsetComputer:
+    def __init__(self, pointsPerDegree, offsetData):
+        self.offsets = offsetData
+        self.pointsPerDegree = pointsPerDegree
+
+    #
+    # get the index of the offset corresponding to aDegreeOffset (a tenth
+    # of a degree).  This is the amount to add to the index we get from a
+    # degree
+    #
+
+    def getIndexOffset(self, aDegreeOffset):
+        if aDegreeOffset in self.offsets:
+            return self.offsets.index(aDegreeOffset)
+        for index, elem in enumerate(self.offsets):
+            if (elem > aDegreeOffset): return index - 1
+        return self.pointsPerDegree - 1
+
+#
+# A Coordinate, just a lat/lon pair.  Here and everywhere these are integers
+# in tenths of degrees
 #
 class Coordinate:
-    def __init__(self, lat, lon):
-        lat = min(90, max(-90, lat))
-        lon = min(180, max(-180, lon))
+    def __init__(self, lon, lat):
+        lat = min(900, max(-900, lat))
+        lon = min(1800, max(-1800, lon))
+        latFromSouthPole = lat + 900
+        lonFromDateline = lon + 1800
+        self.latDegree = int(math.floor(latFromSouthPole/10))
+        self.lonDegree = int(math.floor(lonFromDateline/10))
+        self.lonOffset = lon % 10
+        self.latOffset = lat % 10
         self.lat = lat
         self.lon = lon
 
     def __repr__(self):
-        return '(lat: %f, lon: %f)' % (self.lat, self.lon)
+        vals = (self.lat, self.latDegree, self.latOffset, self.lon, self.lonDegree, self.lonOffset)
+        return 'lat: %d (%d from south pole, offset %d), lon: %d (%d from date line, offset %d)' % vals
 
 #
 # The maximum indices for row and column given pointsPerDegree
@@ -28,32 +57,14 @@ def maximumIndices(pointsPerDegree):
 class DatasetIndex:
     #
     # convert a lat/lon pair to be an (i, j) index into the dataset,
-    # given a number of points per degree.  In general, we have
-    # {lat: aLat, lon:aLon}, and we want to
-    # {rowIndex:aLatIndex, colIndex:aColIndex}, where
-    # the northpole, just east of dateline (90-eps, -180+ eps)
-    # maps to rowIndex:0, colIndex:0,
-    # and where the southpole, just west of dateline (-90 + eps, 180-eps)
-    # maps to the maxIndex (pointsPerDegree^2 * 180 * 3600 - 1)
+    # given a number of points per degree. The dataset
     #
-    def __init__(self, aCoordinate, pointsPerDegree):
-        aLatAsInteger = int(math.ceil(pointsPerDegree * aCoordinate.lat))
-        # now in range (pointsPerDegree * 90, pointsPerDegree * 90 - 1)
-        aLatAsInteger = aLatAsInteger - (pointsPerDegree * 90)
-        # now 0 at the north pole, -(pointsPerDegree * 90) at the equator,
-        # 1-(pointsPerDegree * 180) at the South Pole.  All we need to do
-        # is negate
-        self.rowIndex = -1 * aLatAsInteger
-        # Do it for the longitude.
-        aLonAsInteger = int(math.floor(pointsPerDegree * aCoordinate.lon))
-        # now -pointsPerDegree * 180 at the dateline, 0 at the prime meridian,
-        # 180 - pointsPerDegree just east of the dateline.  all we need to do
-        # is shift the range
-        self.colIndex = aLonAsInteger + 180 * pointsPerDegree
-        maxima = maximumIndices(pointsPerDegree)
-        self.colIndex = max(min(self.colIndex, maxima['column']), 0)
-        self.rowIndex = max(min(self.rowIndex, maxima['row']), 0)
-        self.pointsPerDegree  = pointsPerDegree
+    def __init__(self, aCoordinate, offsetComputer):
+        self.rowIndex =  aCoordinate.latDegree * offsetComputer.pointsPerDegree
+        self.rowIndex += offsetComputer.getIndexOffset(aCoordinate.latOffset)
+        self.colIndex = aCoordinate.lonDegree * offsetComputer.pointsPerDegree
+        self.colIndex += offsetComputer.getIndexOffset(aCoordinate.lonOffset)
+        self.pointsPerDegree  = offsetComputer.pointsPerDegree
 
 
 
@@ -64,7 +75,7 @@ class DatasetIndex:
     # can result in a negative index.  The fix is just to return 0 in that case.
     #
     def indexIntoDataSet(self):
-        return max(self.rowIndex * self.pointsPerRow() + self.colIndex, 0)
+        return int(max(self.rowIndex * self.pointsPerRow() + self.colIndex, 0))
 
     #
     # complement the column index for when we want an index west of the dateline
@@ -103,9 +114,9 @@ class DatasetIndex:
 #
 
 class BoundingBox:
-    def __init__(self, nw, se, pointsPerDegree):
-        self.nwIndex = DatasetIndex(nw, pointsPerDegree)
-        self.seIndex = DatasetIndex(se, pointsPerDegree)
+    def __init__(self, nw, se, offsetComputers):
+        self.nwIndex = DatasetIndex(nw, offsetComputers)
+        self.seIndex = DatasetIndex(se, offsetComputers)
         if (self.seIndex.colIndex < self.nwIndex.colIndex):
             # then we cross the dateline.  There is no problem
             # having a negative column index -- we just use columnIndex
@@ -135,7 +146,7 @@ class BoundingBox:
         # Get the first index of every row in the range.  This is just the row number * pointsPerRow
         # plus the offset from the first point in the row, which is the colIndex
         #
-        rowIndices = range(self.nwIndex.rowIndex, self.seIndex.rowIndex + 1)
+        rowIndices = range(self.seIndex.rowIndex, self.nwIndex.rowIndex + 1)
         firstIndices = [row * self.nwIndex.pointsPerRow() + self.nwIndex.colIndex for row in rowIndices]
         #
         # Unlikely to happen corner case.  If the bounding box includes row 0 (the North Pole) and
@@ -162,8 +173,8 @@ class BoundingBox:
 # strings, one per row.  The subsequent method returns as a single string
 #
 
-def getDataAsSequences(nw, se, pointsPerDegree, dataSet):
-    bbox = BoundingBox(nw, se, pointsPerDegree)
+def getDataAsSequences(nw, se, offsetComputer, dataSet):
+    bbox = BoundingBox(nw, se, offsetComputer)
     indexSet = bbox.getIndexSequences()
     sequences = [dataSet[sn['firstIndex']:sn['lastIndex']] for sn in indexSet]
     return sequences
@@ -174,13 +185,6 @@ def getDataAsSequences(nw, se, pointsPerDegree, dataSet):
 # which calls getDataAsSequences directly does it to support human-readability for debugging.
 #
 
-def getData(nw, se, pointsPerDegree, dataSet):
-    sequences = getDataAsSequences(nw, se, pointsPerDegree, dataSet)
+def getData(nw, se, offsetComputer, dataSet):
+    sequences = getDataAsSequences(nw, se, offsetComputer, dataSet)
     return ''.join(sequences)
-
-#
-# set up some test data
-#
-nw = Coordinate(50, 1)
-se = Coordinate(49, 2)
-bbox = BoundingBox(nw, se, 1)

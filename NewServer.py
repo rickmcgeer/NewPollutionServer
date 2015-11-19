@@ -5,6 +5,7 @@ import os
 import json
 execfile('searchBase64DB.py')
 from config import port
+import math
 
 from flask import Flask
 from flask import request
@@ -96,11 +97,18 @@ def parseAndCheck(request):
         query['error'] = False
     return query
 
+degreeFiles = ['nwLat', 'nwLon', 'seLat', 'seLon']
+
+def convertDegreesToTenthsOfDegrees(query, fields):
+    for field in fields:
+        query[field] = int(math.floor(query[field] * 10))
+
 @app.route('/get_time')
 def get_times():
     query = parseAndCheck(request)
     if (query['error']):
         return query['message']
+    convertDegreesToTenthsOfDegrees(query, degreeFields)
     stats = getStats(query['year'], query['month'], query['res'],
                query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
     return 'Found %d points in %f milliseconds' % (stats['pts'], stats['ms'])
@@ -118,6 +126,7 @@ def get_data():
     query = parseAndCheck(request)
     if (query['error']):
         return query['message']
+    convertDegreesToTenthsOfDegrees(query, degreeFields)
     return searchDB(query['year'], query['month'], query['res'],
                query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
 
@@ -126,6 +135,7 @@ def get_data_readable():
     query = parseAndCheck(request)
     if (query['error']):
         return query['message']
+    convertDegreesToTenthsOfDegrees(query, degreeFields)
     sequences = searchDBReturnRows(query['year'], query['month'], query['res'],
                query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
     return '\n'.join(sequences)

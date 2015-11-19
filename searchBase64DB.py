@@ -20,6 +20,14 @@ def loadDataSet():
     data = {}
     for fileName in datafiles: execfile(fileName)
 
+offsetComputers = {
+    4: OffsetComputer(4, [0, 2, 4, 7, 9]),
+    2: OffsetComputer(2, [0, 5]),
+    1: OffsetComputer(1, [9]),
+    10: OffsetComputer(10, range(0, 10))
+}
+
+
 #
 # Utilities to query the data
 #
@@ -149,7 +157,7 @@ def checkQuery(year, month, res, nwLat, seLat, nwLon, seLon):
 # you want this checked.  Result is a String, row-major order
 #
 def searchDB(year, month, res, nwLat, seLat, nwLon, seLon):
-    return getData(Coordinate(nwLat, nwLon), Coordinate(seLat, seLon), res, data[year][month][res])
+    return getData(Coordinate(nwLat, nwLon), Coordinate(seLat, seLon), offsetComputers[res], data[year][month][res])
 
 
 #
@@ -157,7 +165,7 @@ def searchDB(year, month, res, nwLat, seLat, nwLon, seLon):
 # you want this checked.  Result is a list of sequences, one per row
 #
 def searchDBReturnRows(year, month, res, nwLat, seLat, nwLon, seLon):
-    return getDataAsSequences(Coordinate(nwLat, nwLon), Coordinate(seLat, seLon), res, data[year][month][res])
+    return getDataAsSequences(Coordinate(nwLat, nwLon), Coordinate(seLat, seLon), offsetComputers[res], data[year][month][res])
 import time
 
 #
@@ -165,6 +173,6 @@ import time
 #
 def getStats(year, month, res, nwLat, seLat, nwLon, seLon):
     start = time.time()
-    result = searchDB(year, month, res, nwLat, seLat, nwLon, seLon)
+    result = searchDB(year, month, offsetComputers[res], nwLat, seLat, nwLon, seLon)
     end = time.time()
     return ({'pts': len(result), 'ms': (end - start) * 1000})
