@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# from searchBase64DB import *
+from searchBase64DB import *
 
 # A search rectangle is a tuple (north, west, south, east)
 # where each unit is measured in tenths of degrees
@@ -23,3 +23,6 @@ cases = [(year, month) for year in fullYears for month in range(1, 13)]
 cases.extend([(2015, 1)])
 cases.extend([(1997, month) for month in months1997])
 fullCases = [(year, month, res) for (year, month) in cases for res in resolutions]
+tests = [(north, west, south, east, year, month, res) for (north, west, south, east) in searchRectangles for (year, month, res) in fullCases]
+for (north, west, south, east, year, month, res) in tests:
+    doTest(north, west, south, east, year, month, res)
