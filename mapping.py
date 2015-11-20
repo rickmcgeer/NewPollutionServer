@@ -117,8 +117,8 @@ class BoundingBox:
     def __init__(self, northLat, southLat, westLon, eastLon, offsetComputers):
         self.sw = Coordinate(westLon, southLat)
         self.ne = Coordinate(eastLon, northLat)
-        self.swIndex = DatasetIndex(sw, offsetComputers)
-        self.neIndex = DatasetIndex(ne, offsetComputers)
+        self.swIndex = DatasetIndex(self.sw, offsetComputers)
+        self.neIndex = DatasetIndex(self.ne, offsetComputers)
         if (self.neIndex.colIndex < self.swIndex.colIndex):
             # then we cross the dateline.  There is no problem
             # having a negative column index -- we just use columnIndex
