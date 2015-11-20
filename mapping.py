@@ -114,14 +114,16 @@ class DatasetIndex:
 #
 
 class BoundingBox:
-    def __init__(self, nw, se, offsetComputers):
-        self.nwIndex = DatasetIndex(nw, offsetComputers)
-        self.seIndex = DatasetIndex(se, offsetComputers)
-        if (self.seIndex.colIndex < self.nwIndex.colIndex):
+    def __init__(self, northLat, southLat, westLon, eastLon, offsetComputers):
+        self.sw = Coordinate(westLon, southLat)
+        self.ne = Coordinate(eastLon, northLat)
+        self.swIndex = DatasetIndex(sw, offsetComputers)
+        self.neIndex = DatasetIndex(ne, offsetComputers)
+        if (self.neIndex.colIndex < self.swIndex.colIndex):
             # then we cross the dateline.  There is no problem
             # having a negative column index -- we just use columnIndex
             # as an offset anyway (the data is indexed in row-major order)
-            self.nwIndex.complementColIndex()
+            self.swIndex.complementColIndex()
 
     #
     # Find the actual sequences of indices in the data set. In
@@ -133,24 +135,25 @@ class BoundingBox:
     #
     def getIndexSequences(self):
         # Find out how many indexes per row we want from the bounding box
-        indexesPerRow = 1 + self.seIndex.colIndex - self.nwIndex.colIndex
+        # east - west
+        indexesPerRow = 1 + self.neIndex.colIndex - self.swIndex.colIndex
         #
         # Handle the special case of a single rectangle (the bounding box spans
         # longitude -180 to 180)
         #
-        if (indexesPerRow >=  self.nwIndex.pointsPerRow()):
-            firstIndex = self.nwIndex.indexIntoDataSet()
-            lastIndex = self.seIndex.indexIntoDataSet()
+        if (indexesPerRow >=  self.swIndex.pointsPerRow()):
+            firstIndex = self.swIndex.indexIntoDataSet()
+            lastIndex = self.neIndex.indexIntoDataSet()
             return [{'firstIndex':firstIndex, 'lastIndex':lastIndex}]
         #
         # Get the first index of every row in the range.  This is just the row number * pointsPerRow
         # plus the offset from the first point in the row, which is the colIndex
         #
-        rowIndices = range(self.seIndex.rowIndex, self.nwIndex.rowIndex + 1)
-        firstIndices = [row * self.nwIndex.pointsPerRow() + self.nwIndex.colIndex for row in rowIndices]
+        rowIndices = range(self.swIndex.rowIndex, self.neIndex.rowIndex + 1)
+        firstIndices = [row * self.swIndex.pointsPerRow() + self.swIndex.colIndex for row in rowIndices]
         #
-        # Unlikely to happen corner case.  If the bounding box includes row 0 (the North Pole) and
-        # crosses the dateline, then the nw rowIndex = 0, nw colIndex < 0, and so its dataset index
+        # Unlikely to happen corner case.  If the bounding box includes row 0 (the South Pole) and
+        # crosses the dateline, then the sw rowIndex = 0, sw colIndex < 0, and so its dataset index
         # will be < 0.  The fix here is simply to set it to be 0; for all the remaining rows, the
         # rowIndex * pointsPerRow > |the maximum negative column index|, so the data index is positive
         #
@@ -161,7 +164,7 @@ class BoundingBox:
     # for debugging
     #
     def __repr__(self):
-        return '(nw: %s, se:%s)' % (self.nwIndex.__repr__(), self.seIndex.__repr__())
+        return '(sw: %s, ne:%s)' % (self.swIndex.__repr__(), self.seIndex.__repr__())
 
 #
 # Get the data from dataset for the bounding box given by
@@ -173,8 +176,8 @@ class BoundingBox:
 # strings, one per row.  The subsequent method returns as a single string
 #
 
-def getDataAsSequences(nw, se, offsetComputer, dataSet):
-    bbox = BoundingBox(nw, se, offsetComputer)
+def getDataAsSequences(north, south, west, east, offsetComputer, dataSet):
+    bbox = BoundingBox(north, south, west, east, offsetComputer)
     indexSet = bbox.getIndexSequences()
     sequences = [dataSet[sn['firstIndex']:sn['lastIndex']] for sn in indexSet]
     return sequences
@@ -185,6 +188,6 @@ def getDataAsSequences(nw, se, offsetComputer, dataSet):
 # which calls getDataAsSequences directly does it to support human-readability for debugging.
 #
 
-def getData(nw, se, offsetComputer, dataSet):
-    sequences = getDataAsSequences(nw, se, offsetComputer, dataSet)
+def getData(north, south, west, east, offsetComputer, dataSet):
+    sequences = getDataAsSequences(north, south, west, east, offsetComputer, dataSet)
     return ''.join(sequences)

@@ -97,7 +97,13 @@ def parseAndCheck(request):
         query['error'] = False
     return query
 
-degreeFiles = ['nwLat', 'nwLon', 'seLat', 'seLon']
+degreeFields = ['nwLat', 'nwLon', 'seLat', 'seLon']
+
+def dumpQuery(query):
+    str = ['query[%s] = %s' % (key, query[key]) for key in query]
+    print ', '.join(str)
+    sys.stdout.flush()
+
 
 def convertDegreesToTenthsOfDegrees(query, fields):
     for field in fields:
