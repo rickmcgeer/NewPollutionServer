@@ -26,7 +26,7 @@ def loadDataSet():
 def loadDataSetMin():
     global data
     data = {}
-    execfile(datafiles[0])
+    execfile(join(dataDirectory, 'data_2006.py'))
 
 offsetComputers = {
     4: OffsetComputer(4, [0, 2, 4, 7, 9]),
