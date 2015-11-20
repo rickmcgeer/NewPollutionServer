@@ -10,7 +10,7 @@ searchRectangles = [
 ]
 
 def doTest(north, west, south, east, year, month, res):
-    result = getStates(north, west, south, east, year, month, res)
+    result = getStats(north, west, south, east, year, month, res)
     print ("Results for Bounding Box (%d, %d) (%d, %d), year = %d, month=%d, res=%d" % (west, north, east, south, year, month, res))
     print ("%d points found in %f milliseconds" % result['pts'], result['ms'])
     print ("Total bytes %d", result[pts] * 8)
