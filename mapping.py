@@ -63,7 +63,7 @@ class OffsetComputer:
         # gives us the row
         rowIndex = int(math.floor(anIndexIntoDataSet/(360 * self.pointsPerDegree)))
         # The column index is just what's left over
-        colIndex = anIndexIntoDataSet - 360 * pointsPerDegree * rowIndex
+        colIndex = anIndexIntoDataSet - 360 * self.pointsPerDegree * rowIndex
         latitude = self.computeLatOrLonFromIndex(rowIndex)
         longitude = self.computeLatOrLonFromIndex(colIndex)
         return {'lat': latitude, 'lon': longitude}
