@@ -1,5 +1,8 @@
 #!/usr/bin/python
 from searchBase64DB import *
+import sys
+
+debug = len(sys.argv == 2) and sys.argv[1] == 'debug'
 
 # A search rectangle is a tuple (north, west, south, east)
 # where each unit is measured in tenths of degrees
@@ -15,16 +18,25 @@ def doTest(north, west, south, east, year, month, res):
     print ("%d points found in %f milliseconds" % (result['pts'], result['ms']))
     print ("Total bytes %d" % (result['pts'] * 8))
 
-fullYears = range(1998, 2015)
-# fullYears = [2006]
-months1997 = range(9, 13)
+
+if debug:
+    fullYears = [2006]
+else:
+    fullYears = range(1998, 2015)
+    months1997 = range(9, 13)
+
 resolutions = [1, 2, 4, 10]
 
-loadDataSet()
-# loadDataSetMin()
+if debug:
+    loadDataSetMin()
+else:
+    loadDataSet()
+#
 cases = [(year, month) for year in fullYears for month in range(1, 13)]
-# cases.extend([(2015, 1)])
-# cases.extend([(1997, month) for month in months1997])
+if (not debug):
+    cases.extend([(2015, 1)])
+    cases.extend([(1997, month) for month in months1997])
+
 fullCases = [(year, month, res) for (year, month) in cases for res in resolutions]
 tests = [(north, west, south, east, year, month, res) for (north, west, south, east) in searchRectangles for (year, month, res) in fullCases]
 for (north, west, south, east, year, month, res) in tests:
