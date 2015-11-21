@@ -59,10 +59,10 @@ basicParseFields = [('year', int, lambda x: x in range(1997, 2016)),
           ]
 
 fullParseFields = basicParseFields + [
-        ('nwLat', float, lambda x: x <= 90.0 and x => -90.0),
-        ('seLat', float, lambda x: x <= 90.0 and x => -90.0),
-        ('nwLon', float, lambda x: x <= 180.0 and x => -180.0),
-        ('seLon', float, lambda x: x <= 180.0 and x => -180.0),
+        ('nwLat', float, lambda x: x <= 90.0 and x >= -90.0),
+        ('seLat', float, lambda x: x <= 90.0 and x >= -90.0),
+        ('nwLon', float, lambda x: x <= 180.0 and x >= -180.0),
+        ('seLon', float, lambda x: x <= 180.0 and x >= -180.0),
     ]
 
 #
