@@ -135,9 +135,11 @@ def get_data():
     convertDegreesToTenthsOfDegrees(query, degreeFields)
     result = searchDB(query['year'], query['month'], query['res'],
                query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
-    coord = result['firstCoordinate']
-    resultTuple = (coord['lon'], coord['lat'], result['pointsPerRow'], result['base64String'])
-    return('%d,%d,%d,%s' % resultTuple)
+    return json.dumps({
+        'sw': result['swCorner'], 'ptsPerRow': result['pointsPerRow'],
+        'ptsPerDegree': result['pointsPerDegree'], 'base64String': result['base64String']
+    })
+
 
 @app.route('/get_data_readable')
 def get_data_readable():
@@ -147,9 +149,11 @@ def get_data_readable():
     convertDegreesToTenthsOfDegrees(query, degreeFields)
     result = searchDBReturnRows(query['year'], query['month'], query['res'],
                query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
-    coord = result['firstCoordinate']
-    resultTuple = (coord['lon'], coord['lat'], result['pointsPerRow'], '\n'.join(result['sequences']))
-    return 'lon=%d,lat=%d,pointsPerRow=%d\n%s' % resultTuple
+    return json.dumps({
+        'sw': result['swCorner'], 'ptsPerRow': result['pointsPerRow'],
+        'ptsPerDegree': result['pointsPerDegree'], 'base64String': '\n'.join(result['sequences'])
+    })
+    
 
 
 if __name__ == '__main__':

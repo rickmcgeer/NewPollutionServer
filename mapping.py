@@ -229,7 +229,7 @@ def getDataAsSequences(north, south, west, east, offsetComputer, dataSet):
     sequences = [dataSet[sn['firstIndex']:sn['lastIndex']] for sn in indexSet]
     firstCoordinate = offsetComputer.getCoordinateForIndex(indexSet[0]['firstIndex'])
     pointsPerRow = bbox.indexesPerRow()
-    return {'swCorner': firstCoordinate, 'pointsPerRow': pointsPerRow, 'sequences': sequences}
+    return {'swCorner': firstCoordinate, 'pointsPerRow': pointsPerRow, 'pointsPerDegree': offsetComputer.pointsPerDegree, 'sequences': sequences}
 #
 # Get the data from dataset for the bounding box given by
 # (nw, se) where each is given by a pair (lat, long).  This returns the result
