@@ -2,7 +2,7 @@
 from searchBase64DB import *
 import sys
 
-debug = len(sys.argv == 2) and sys.argv[1] == 'debug'
+debug = len(sys.argv) == 2 and sys.argv[1] == 'debug'
 
 # A search rectangle is a tuple (north, west, south, east)
 # where each unit is measured in tenths of degrees
