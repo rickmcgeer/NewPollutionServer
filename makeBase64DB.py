@@ -4,22 +4,6 @@ from mapping import *
 def zeroVector(n):
     return [base64[0] for i in range(0, n)]
 
-class Base64Encoder:
-    def __init__(self, maxX, maxY):
-        self.maxY = min(maxY, 63)
-        self.maxX = maxX
-        self.slope = self.maxY/self.maxX
-        self.bitOffset = maxX.bit_length()
-
-    def encode(self, aValue):
-        if aValue < 0: return 0
-        if (aValue <= self.maxX):
-            return int(round(self.slope * aValue))
-        logAValue = int(aValue).bit_length()
-        return min((logAValue - self.bitOffset) + self.maxY, 63)
-
-
-
 def makeBase64(year, month, pointsPerDegree, base64Encoder):
     resultVector = zeroVector(fullSetSize(pointsPerDegree))
     for data in pm25[year][month][pointsPerDegree]:

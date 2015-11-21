@@ -3,6 +3,21 @@ import math
 
 base64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
+class Base64Encoder:
+    def __init__(self, maxX, maxY):
+        self.maxY = min(maxY, 63)
+        self.maxX = maxX
+        self.slope = self.maxY/self.maxX
+        self.bitOffset = maxX.bit_length()
+
+    def encode(self, aValue):
+        if aValue < 0: return 0
+        if (aValue <= self.maxX):
+            return int(round(self.slope * aValue))
+        logAValue = int(aValue).bit_length()
+        return min((logAValue - self.bitOffset) + self.maxY, 63)
+
+
 def fullSetSize(pointsPerDegree):
     return 360 * 180 * pointsPerDegree * pointsPerDegree
 
@@ -26,6 +41,32 @@ class OffsetComputer:
         for index, elem in enumerate(self.offsets):
             if (elem > aDegreeOffset): return index - 1
         return self.pointsPerDegree - 1
+
+    #
+    # given a row or column index, return the latitude/longitude
+    # in tenths of degrees
+    #
+    def computeLatOrLonFromIndex(self, aRowOrColIndex):
+        numDegrees = int(math.floor(aRowOrColIndex/self.pointsPerDegree))
+        offsetIndex = aRowOrColIndex % self.pointsPerDegree
+        return 10 * numDegrees + self.offsets[offsetIndex]
+
+    #
+    # Return the lat/lon for a given index into the dataset.  This is the
+    # inverse of the computation that DatasetIndex does.  As always, we will
+    # return in tenths of degrees
+    #
+
+    def getCoordinateForIndex(self, anIndexIntoDataSet):
+        # There are 360 * pointsPerDegree points in a row
+        # so taking the floor of anIndexIntoDataset/(360 * pointsPerDegree)
+        # gives us the row
+        rowIndex = int(math.floor(anIndexIntoDataset/(360 * self.pointsPerDegree)))
+        # The column index is just what's left over
+        colIndex = anIndexIntoDataset - 360 * pointsPerDegree * rowIndex
+        latitude = self.computeLatOrLonFromIndex(rowIndex)
+        longitude = self.computeLatOrLonFromIndex(colIndex)
+        return {'lat': latitude, 'lon': longitude}
 
 #
 # A Coordinate, just a lat/lon pair.  Here and everywhere these are integers
@@ -126,6 +167,12 @@ class BoundingBox:
             self.swIndex.complementColIndex()
 
     #
+    # Number of indexes in a row
+    #
+    def indexesPerRow(self):
+        return 1 + self.neIndex.colIndex - self.swIndex.colIndex
+
+    #
     # Find the actual sequences of indices in the data set. In
     # general, this will be a list of the form [{'firstIndex':n, 'lastIndex':m}]
     # where n < m and both are on the same row.  the second form is where the
@@ -154,11 +201,11 @@ class BoundingBox:
         #
         # Unlikely to happen corner case.  If the bounding box includes row 0 (the South Pole) and
         # crosses the dateline, then the sw rowIndex = 0, sw colIndex < 0, and so its dataset index
-        # will be < 0.  The fix here is simply to set it to be 0; for all the remaining rows, the
-        # rowIndex * pointsPerRow > |the maximum negative column index|, so the data index is positive
+        # will be < 0.  The fix here is simply to set the first row to be the first row above the
+        # south pole (which is empty in any case).  This just means dropping the first element
         #
         if firstIndices[0] < 0:
-            firstIndices[0] = 0
+            firstIndices = firstIndices[1:]
         return [{'firstIndex': firstIndex, 'lastIndex': firstIndex + indexesPerRow} for firstIndex in firstIndices]
     #
     # for debugging
@@ -180,7 +227,9 @@ def getDataAsSequences(north, south, west, east, offsetComputer, dataSet):
     bbox = BoundingBox(north, south, west, east, offsetComputer)
     indexSet = bbox.getIndexSequences()
     sequences = [dataSet[sn['firstIndex']:sn['lastIndex']] for sn in indexSet]
-    return sequences
+    firstCoordinate = offsetComputer.getCoordinateForIndex(indexSet[0]['firstIndex'])
+    pointsPerRow = bbox.indexesPerRow()
+    return {'swCorner': firstCoordinate, 'pointsPerRow': pointsPerRow, 'sequences': sequences}
 #
 # Get the data from dataset for the bounding box given by
 # (nw, se) where each is given by a pair (lat, long).  This returns the result
@@ -189,5 +238,6 @@ def getDataAsSequences(north, south, west, east, offsetComputer, dataSet):
 #
 
 def getData(north, south, west, east, offsetComputer, dataSet):
-    sequences = getDataAsSequences(north, south, west, east, offsetComputer, dataSet)
-    return ''.join(sequences)
+    result = getDataAsSequences(north, south, west, east, offsetComputer, dataSet)
+    result['base64String'] = ''.join(result['sequences'])
+    return result

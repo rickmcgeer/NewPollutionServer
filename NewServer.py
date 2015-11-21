@@ -133,8 +133,11 @@ def get_data():
     if (query['error']):
         return query['message']
     convertDegreesToTenthsOfDegrees(query, degreeFields)
-    return searchDB(query['year'], query['month'], query['res'],
+    result = searchDB(query['year'], query['month'], query['res'],
                query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
+    coord = result['firstCoordinate']
+    resultTuple = (coord['lon'], coord['lat'], result['pointsPerRow'], result['base64String'])
+    return('%d,%d,%d,%s' % resultTuple)
 
 @app.route('/get_data_readable')
 def get_data_readable():
@@ -142,9 +145,12 @@ def get_data_readable():
     if (query['error']):
         return query['message']
     convertDegreesToTenthsOfDegrees(query, degreeFields)
-    sequences = searchDBReturnRows(query['year'], query['month'], query['res'],
+    result = searchDBReturnRows(query['year'], query['month'], query['res'],
                query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
-    return '\n'.join(sequences)
+    coord = result['firstCoordinate']
+    resultTuple = (coord['lon'], coord['lat'], result['pointsPerRow'], '\n'.join(result['sequences']))
+    return 'lon=%d,lat=%d,pointsPerRow=%d\n%s' % resultTuple
+
 
 if __name__ == '__main__':
     # for fileName in yearFiles:

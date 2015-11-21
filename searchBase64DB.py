@@ -174,6 +174,7 @@ def searchDB(year, month, res, north, south, west, east):
 #
 def searchDBReturnRows(year, month, res, north, south, west, east):
     return getDataAsSequences(north, south, west, east, offsetComputers[res], data[year][month][res])
+
 import time
 
 #
@@ -183,4 +184,4 @@ def getStats(year, month, res, north, south, west, east):
     start = time.time()
     result = searchDB(year, month, res, north, south, west, east)
     end = time.time()
-    return ({'pts': len(result), 'ms': (end - start) * 1000})
+    return ({'pts': len(result['base64String']), 'ms': (end - start) * 1000})
