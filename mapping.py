@@ -46,10 +46,10 @@ class OffsetComputer:
     # given a row or column index, return the latitude/longitude
     # in tenths of degrees
     #
-    def computeLatOrLonFromIndex(self, aRowOrColIndex):
+    def computeLatOrLonFromIndex(self, aRowOrColIndex, minValue):
         numDegrees = int(math.floor(aRowOrColIndex/self.pointsPerDegree))
         offsetIndex = aRowOrColIndex % self.pointsPerDegree
-        return 10 * numDegrees + self.offsets[offsetIndex]
+        return minValue + 10 * numDegrees + self.offsets[offsetIndex]
 
     #
     # Return the lat/lon for a given index into the dataset.  This is the
@@ -64,8 +64,8 @@ class OffsetComputer:
         rowIndex = int(math.floor(anIndexIntoDataSet/(360 * self.pointsPerDegree)))
         # The column index is just what's left over
         colIndex = anIndexIntoDataSet - 360 * self.pointsPerDegree * rowIndex
-        latitude = self.computeLatOrLonFromIndex(rowIndex)
-        longitude = self.computeLatOrLonFromIndex(colIndex)
+        latitude = self.computeLatOrLonFromIndex(rowIndex, -900)
+        longitude = self.computeLatOrLonFromIndex(colIndex, -1800)
         return {'lat': latitude, 'lon': longitude}
 
 #
