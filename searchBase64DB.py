@@ -24,9 +24,16 @@ def loadDataSet():
 # Minimal initialize and read the data for debugging
 #
 def loadDataSetMin():
+    loadDataSetForYear(2006)
+
+
+# 
+# load the dataset for a particular year
+#
+def loadDataSetForYear(aYear):
     global data
     data = {}
-    execfile(join(dataDirectory, 'data_2006.py'))
+    execfile(join(dataDirectory, 'data_%d.py' % aYear))
 
 offsetComputers = {
     4: OffsetComputer(4, [0, 2, 4, 7, 9]),

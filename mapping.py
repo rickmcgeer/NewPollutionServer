@@ -3,6 +3,12 @@ import math
 
 base64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
+#
+# A Hybrid encoder.  This encodes according to the formula
+# y = (maxY/maxX) * x for 0 <= x <= maxX
+# y = maxY + ceil(log2(x)) - ceil(log2(maxX)) for
+# x > maxX
+#
 class Base64Encoder:
     def __init__(self, maxX, maxY):
         self.maxY = min(maxY, 63)
@@ -16,6 +22,33 @@ class Base64Encoder:
             return int(round(self.slope * aValue))
         logAValue = int(aValue).bit_length()
         return min((logAValue - self.bitOffset) + self.maxY, 63)
+
+    def getXRange(self, aYVal):
+        if (aYVal < 0):
+            return {'min': 0, 'max':0}
+        #
+        # If it's in the linear range, we have
+        # y = slope * x, so
+        # x = y/slope.  Since we're rounding,
+        # the minimum x is (y - 0.5)/slope, the
+        # maximum is (y + 0.5)/slope
+        if (aYVal < self.maxY):
+            return {'min': (aYVal - 0.5)/self.slope, 'max': (aYVal + 0.5)/self.slope}
+        #
+        # If we're in the exponential range, then
+        # y = maxY + ceil(log2(x)) - ceil(log2(maxX)) for
+        # so ceil(log2(maxX)) + y - maxY = ceil(log2(x))
+        # so x < 1 << ceil(log2(maxX)) + y - maxY and
+        # the min is half that...note ceil(log2(maxX)) is self.bitOffset
+        #
+        ceilX = 1 << (self.bitOffset + aYVal - self.maxY)
+        minX = ceilX >> 1
+        if (aYVal == self.maxY or minX < self.maxX):
+            minX = self.maxX - 0.5
+        if (aYVal == 63):
+            ceilX = 1 << 30 # infinity...
+        return {'min': minX, 'max': ceilX}
+
 
 
 def fullSetSize(pointsPerDegree):
@@ -211,7 +244,7 @@ class BoundingBox:
     # for debugging
     #
     def __repr__(self):
-        return '(sw: %s, ne:%s)' % (self.swIndex.__repr__(), self.seIndex.__repr__())
+        return '(sw: %s, ne:%s)' % (self.swIndex.__repr__(), self.neIndex.__repr__())
 
 #
 # Get the data from dataset for the bounding box given by
