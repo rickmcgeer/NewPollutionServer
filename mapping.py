@@ -122,6 +122,9 @@ class Coordinate:
         vals = (self.lat, self.latDegree, self.latOffset, self.lon, self.lonDegree, self.lonOffset)
         return 'lat: %d (%d from south pole, offset %d), lon: %d (%d from date line, offset %d)' % vals
 
+    def clone(self):
+        return Coordinate(self.lon, self.lat)
+
 #
 # The maximum indices for row and column given pointsPerDegree
 #
@@ -213,7 +216,7 @@ class BoundingBox:
     # We are throwing lots of data structures at this problem, primarily for
     # testing and debugging
     #
-    def getIndexSequences(self):
+    def getIndexSequences(self, optimizeSingleRectangleCase):
         # Find out how many indexes per row we want from the bounding box
         # east - west
         indexesPerRow = 1 + self.neIndex.colIndex - self.swIndex.colIndex
@@ -221,7 +224,7 @@ class BoundingBox:
         # Handle the special case of a single rectangle (the bounding box spans
         # longitude -180 to 180)
         #
-        if (indexesPerRow >=  self.swIndex.pointsPerRow()):
+        if (optimizeSingleRectangleCase and indexesPerRow >=  self.swIndex.pointsPerRow()):
             firstIndex = self.swIndex.indexIntoDataSet()
             lastIndex = self.neIndex.indexIntoDataSet()
             return [{'firstIndex':firstIndex, 'lastIndex':lastIndex}]
@@ -256,9 +259,9 @@ class BoundingBox:
 # strings, one per row.  The subsequent method returns as a single string
 #
 
-def getDataAsSequences(north, south, west, east, offsetComputer, dataSet):
+def getDataAsSequences(north, south, west, east, offsetComputer, dataSet, optimizeSingleRectangleCase = True):
     bbox = BoundingBox(north, south, west, east, offsetComputer)
-    indexSet = bbox.getIndexSequences()
+    indexSet = bbox.getIndexSequences(optimizeSingleRectangleCase)
     sequences = [dataSet[sn['firstIndex']:sn['lastIndex']] for sn in indexSet]
     firstCoordinate = offsetComputer.getCoordinateForIndex(indexSet[0]['firstIndex'])
     pointsPerRow = bbox.indexesPerRow()
@@ -274,3 +277,8 @@ def getData(north, south, west, east, offsetComputer, dataSet):
     result = getDataAsSequences(north, south, west, east, offsetComputer, dataSet)
     result['base64String'] = ''.join(result['sequences'])
     return result
+
+
+        
+            
+                                       

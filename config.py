@@ -4,7 +4,7 @@
 #
 # the directory where the data lives.  This should be in a configuration file
 #
-dataDirectory = '/data/pyData'
+dataDirectory = './pyData'
 #
 # server port
 #

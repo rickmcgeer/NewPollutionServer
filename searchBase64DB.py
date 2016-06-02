@@ -7,33 +7,8 @@ from mapping import *
 from os import listdir
 from os.path import isfile, join
 from config import dataDirectory
+from loadManager import DataManager
 
-datafiles = filter(lambda x: x.startswith('data_'), listdir(dataDirectory))
-datafiles = filter(isfile, [join(dataDirectory, fileName) for fileName in datafiles])
-
-data = {}
-#
-# initialize and read the data
-#
-def loadDataSet():
-    global data
-    data = {}
-    for fileName in datafiles: execfile(fileName)
-
-#
-# Minimal initialize and read the data for debugging
-#
-def loadDataSetMin():
-    loadDataSetForYear(2006)
-
-
-# 
-# load the dataset for a particular year
-#
-def loadDataSetForYear(aYear):
-    global data
-    data = {}
-    execfile(join(dataDirectory, 'data_%d.py' % aYear))
 
 offsetComputers = {
     4: OffsetComputer(4, [0, 2, 4, 7, 9]),
@@ -44,121 +19,13 @@ offsetComputers = {
 
 
 #
-# Utilities to query the data
-#
-def getMonths(year):
-    if year in data:
-        return data[year].keys()
-    else:
-        return []
-
-def getResolutions(year, month):
-    if (year in data):
-        if (month in data[year]):
-            return data[year][month].keys()
-    return 0
-
-#
-# Does a data set exist for year/month/res?
-#
-def checkDatasetExists(year, month, res):
-    if (not year in data): return False
-    if (not month in data[year]): return False
-    if (not res in data[year][month]): return False
-    return True
-
-#
-# Sanity check on data: is everything the right length?
-#
-def sanityCheck(year, month, res):
-    if (checkDatasetExists(year, month, res)):
-        return fullSetSize(res) == len(data[year][month][res])
-    return False
-
-def convertToString(year, month, res):
-    return "year = %d, month = %d, res = %d" % (year, month, res)
-
-#
-# Sanity check and report
-#
-def sanityCheckAndReport(year, month, res):
-    setReportStr = convertToString(year, month, res)
-    sanityCheckReportString = 'Data set sanity check failed for %s, expected %d entries got %d'
-    if (not checkDatasetExists(year, month, res)):
-        print 'Data set %s does not exist' % setReportStr
-        return
-    if (not sanityCheck(year, month, res)):
-        print sanityCheckReportString % (setReportStr, fullSetSize(res), len(data[year][month][res]))
-#
-# Iterate over  the entire data set, calling fun on each item
-# fun should be a function that takes year, month, res
-#
-def iterateOverDataSetAndDo(fun):
-    for year in data:
-        for month in data[year]:
-            for res in data[year][month]:
-                fun(year, month, res)
-
-#
-# Do A sanity check over the whole data set
-#
-def fullSanityCheck():
-    iterateOverDataSetAndDo(sanityCheckAndReport)
-
-#
-# print a year, month, res
-#
-def printReport(year, month, res):
-    print convertToString(year, month, res)
-
-#
-# checkExistenceSanityCheckReport: designed to be called
-# from checkExistenceSanityCheck -- just makes sure that
-# checkDatasetExists returns True for all loaded data sets
-#
-def checkExistenceSanityCheckReport(year, month, res):
-    if not checkDatasetExists(year, month, res):
-        print 'Error: checkDatasetExists failed for ' + convertToString(year, month, res)
-#
-# Ensure checkDatasetExists returns True for all loaded data sets
-#
-def checkExistenceSanityCheck():
-    iterateOverDataSetAndDo(checkExistenceSanityCheckReport)
-
-#
-# print an inventory of what we have
-#
-def printInventory():
-    print 'Printing Inventory of loaded data.  '
-    print 'Data Files are: ' + ', '.join(datafiles)
-    iterateOverDataSetAndDo(printReport)
-
-#
-# getInventory: return everything we have loaded.  Should use the
-# iterate meta but I need to figure out how to make that return a List
-# returns a list of human-readable strings rather than tuples
-#
-def getInventory():
-    result = []
-    for year in data:
-        for month in data[year]:
-            for res in data[year][month]:
-                result.append(convertToString(year, month, res))
-    return result
-
-
-#
-# Now we get to it...actually searching the data
-#
-
-#
 # Utility to check that a query is OK.  This should be called
 # only when we haven't checked previously.  This checks to make sure
 # we have the data and that the bounds are OK.  Returns a pair
 # (T/F, message), where the message explains the problem if one was detected
 #
-def checkQuery(year, month, res, nwLat, seLat, nwLon, seLon):
-    if not checkDatasetExists(year, month, res):
+def checkQuery(dataManager, year, month, res, nwLat, seLat, nwLon, seLon):
+    if not dataManager.checkLoadable(year, month, res):
         return (False, "No Dataset for %s" % convertToString(year, month, res))
     for lat in [nwLat, seLat]:
         if (lat < -90 or lat > 90):
@@ -171,24 +38,110 @@ def checkQuery(year, month, res, nwLat, seLat, nwLon, seLon):
 # Actually Search the DB for a matching string.  No checking: call first if
 # you want this checked.  Result is a String, row-major order
 #
-def searchDB(year, month, res, north, south, west, east):
-    return getData(north, south, west, east, offsetComputers[res], data[year][month][res])
+def searchDB(dataManager, year, month, res, north, south, west, east):
+    dataSet = dataManager.getData(year, month, res)
+    return getData(north, south, west, east, offsetComputers[res], dataSet)
 
 
 #
 # Actually Search the DB for a matching string.  No checking: call first if
 # you want this checked.  Result is a list of sequences, one per row
 #
-def searchDBReturnRows(year, month, res, north, south, west, east):
-    return getDataAsSequences(north, south, west, east, offsetComputers[res], data[year][month][res])
+def searchDBReturnRows(dataManager, year, month, res, north, south, west, east, optimizeSingleRectangleCase):
+    dataSet = dataManager.getData(year, month, res)
+    return getDataAsSequences(north, south, west, east, offsetComputers[res], dataSet, optimizeSingleRectangleCase)
+
+#
+# count the number of zeros in a string
+#
+def countNonZero(aBase64String):
+    return len([x for x in aBase64String if x != 'A'])
 
 import time
 
 #
 # get the statistics for a search as a dictionary with two entries, pts and ms
 #
-def getStats(year, month, res, north, south, west, east):
+def getStats(dataManager, year, month, res, north, south, west, east):
     start = time.time()
-    result = searchDB(year, month, res, north, south, west, east)
+    result = searchDB(dataManager, year, month, res, north, south, west, east)
     end = time.time()
-    return ({'pts': len(result['base64String']), 'ms': (end - start) * 1000})
+    nonzero = countNonZero(result['base64String'])
+    rectResult = searchDBReturnRows(dataManager, year, month, res, north, south, west, east, False)
+    s1 = time.time()
+    rectangles = convertToRectangles(rectResult, False)
+    res1 = '[' + '.'.join(rectangles) + ']'
+    e1 = time.time()
+    s2 = time.time()
+    rectangles = convertToRectangles(rectResult, True)
+    res2 = '[' + '.'.join(rectangles) + ']'
+    e2 = time.time()
+    numRects = len(rectangles)
+    result = {'pts': len(result['base64String']), 'nonzero': nonzero, 'search(ms)': (end - start) * 1000}
+    result.update({'rectangles': numRects, 'convertTime(lat/lon)(ms)': (e1 - s1) * 1000})
+    result.update({'rectangle bytes(lat/lon)': len(res1), 'converTime(indices)(ms)': (e2 - s2) * 1000})
+    result.update({'rectangle bytes(indices)': len(res2)})
+    return result
+
+#
+# Convert a sequence with a latitude, an increment, and a longitude into a list of
+# Rectangles
+#
+def convertSequenceToRectangles(latitude, firstLon, increment, sequence):
+    result = []
+    currentValue = sequence[0]
+    startLon  = firstLon
+    lon = firstLon
+    for index in range(1, len(sequence)):
+        if sequence[index] == currentValue:
+            lon += increment
+            continue
+        value = base64.index(currentValue)
+        if value != 0:
+            result.append('(%d,%d,%d,%d)' %  (value, latitude, startLon, lon))
+        currentValue = sequence[index]
+        lon += increment
+        startLon = lon
+    value = base64.index(sequence[-1])
+    if value != 0:
+        result.append('(%d,%d,%d,%d)' % (value, latitude, startLon, lon))
+    return result
+
+#
+# Convert a sequence with a latitude, an increment, and a longitude into a list of
+# Rectangles
+#
+def convertSequenceToSimpleRectangles(rowNum, sequence):
+    result = []
+    currentValue = sequence[0]
+    firstIndex = 0
+    for index in range(1, len(sequence)):
+        if sequence[index] == currentValue:
+            continue
+        value = base64.index(currentValue)
+        if value != 0:
+            result.append('(%d,%d,%d,%d)' % (value, rowNum, firstIndex, index))
+        currentValue = sequence[index]
+        firstIndex = index + 1
+    value = base64.index(sequence[-1])
+    if value != 0:
+        result.append('(%d,%d,%d,%d)' % (value, rowNum, firstIndex, len(sequence) - 1))
+    return result
+
+#
+# convert a search result into a set of rectangles
+#
+def convertToRectangles(aSearchResult, doIndicesOnly):
+    increment = 10/aSearchResult['pointsPerDegree']
+    firstLon = aSearchResult['swCorner']['lon']
+    lat = aSearchResult['swCorner']['lat']
+    rectangles = []
+    index = 0
+    for sequence in aSearchResult['sequences']:
+        if (doIndicesOnly):
+            rectangles.extend(convertSequenceToSimpleRectangles(index, sequence))
+        else:
+            rectangles.extend(convertSequenceToRectangles(lat, firstLon, increment, sequence))
+        lat += increment
+        ++index
+    return rectangles

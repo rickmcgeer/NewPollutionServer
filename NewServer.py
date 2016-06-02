@@ -10,10 +10,12 @@ import math
 from flask import Flask
 from flask import request
 from flask.ext.cors import CORS, cross_origin
+from loadManager import DataManager
 
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
+dataManager = DataManager()
 
 #
 # Dig out a  field, convert it using convertFunction, and check the result
@@ -115,16 +117,17 @@ def get_times():
     if (query['error']):
         return query['message']
     convertDegreesToTenthsOfDegrees(query, degreeFields)
-    stats = getStats(query['year'], query['month'], query['res'],
+    stats = getStats(dataManager, query['year'], query['month'], query['res'],
                query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
-    return 'Found %d points in %f milliseconds' % (stats['pts'], stats['ms'])
+    return json.dumps(stats)
 
 @app.route('/show_inventory')
 def get_inventory():
-    datafileList = 'Datafiles: ' + ', '.join(datafiles)
-    print datafileList
-    inventory = '\n'.join(getInventory())
+    loadable = '\n'.join(["year = %d, month=%d, res=%d" % tuple for tuple in dataManager.getLoadableKeys()])
+    print loadable
+    inventory = '\n'.join(join(["year = %d, month=%d, res=%d" % tuple for tuple in dataManager.getAllLoadedKeys()]))
     print inventory
+    size = '\nTotal Bytes loaded: %dMB\n' % int(round(dataManager.getSize()/1.0E6))
     return datafileList + '\nData sets loaded\n' + inventory
 
 @app.route('/get_data')
@@ -133,7 +136,7 @@ def get_data():
     if (query['error']):
         return query['message']
     convertDegreesToTenthsOfDegrees(query, degreeFields)
-    result = searchDB(query['year'], query['month'], query['res'],
+    result = searchDB(dataManager, query['year'], query['month'], query['res'],
                query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
     return json.dumps({
         'sw': result['swCorner'], 'ptsPerRow': result['pointsPerRow'],
@@ -147,21 +150,46 @@ def get_data_readable():
     if (query['error']):
         return query['message']
     convertDegreesToTenthsOfDegrees(query, degreeFields)
-    result = searchDBReturnRows(query['year'], query['month'], query['res'],
-               query['nwLat'], query['seLat'], query['nwLon'], query['seLon'])
+    result = searchDBReturnRows(dataManager, query['year'], query['month'], query['res'],
+               query['nwLat'], query['seLat'], query['nwLon'], query['seLon'], False)
     return json.dumps({
         'sw': result['swCorner'], 'ptsPerRow': result['pointsPerRow'],
         'ptsPerDegree': result['pointsPerDegree'], 'base64String': '\n'.join(result['sequences'])
     })
 
+@app.route('/get_data_rectangle')
+def get_data_rectangle():
+    query = parseAndCheck(request)
+    if (query['error']):
+        return query['message']
+    convertDegreesToTenthsOfDegrees(query, degreeFields)
+    searchResult = searchDBReturnRows(dataManager, query['year'], query['month'], query['res'],
+               query['nwLat'], query['seLat'], query['nwLon'], query['seLon'], False)
+    indicesOnly = 'indicesOnly' in request.args
+    result = convertToRectangles(searchResult, 'indicesOnly')
+    return json.dumps({
+        'sw': searchResult['swCorner'],
+        'ptsPerDegree': searchResult['pointsPerDegree'], 'rectangles': ','.join(result)
+    })
 
+@app.route('/help')
+def print_help():
+    str = '<p>/show_inventory: print loaded data'
+    str += '<p>/get_data?&lt;args&gt;:get the data as a base-64 string with metadata.  See below for argument format'
+    str += '<p>/get_data_readable?&lt;args&gt;:same as get_data but put the base64 string into rows for human readability'
+    str += '<p>/get_times?&lt;args&gt;: get the statistics on the query'
+    str += '<p>/get_data_rectangle?&lt;args&gt;: get the data as a set of 5-tuple rectangles rather than as a set of strings.  In addition to'
+    str += ' the usual args, if indicesOnly is given as an argument, gives row/column indices rather than lat/lon for coordinates'
+    str += '<p>/help: print this message\n'
+    str += '&lt;args&gt;: swLon=&lt;longitude&gt;, neLon=&lt;longitude&gt;, swLat=&lt;latitude&gt;, neLat=&lt;latitude&gt;,'
+    str += 'year=&lt;year&gt;, month=&lt;1-12&gt;, res=&lt;1,2,4, or 10&gt;'
+    return str
 
 if __name__ == '__main__':
     # for fileName in yearFiles:
     #     execfile(fileName)
     # print memory()
     # app.debug = True
-    loadDataSet()
-    printInventory()
-    checkExistenceSanityCheck()
+
+    dataManager.checkExistenceSanityCheck()
     app.run(host='0.0.0.0', port=port)
