@@ -1,6 +1,24 @@
 from config import dataDirectory
 import json
 from mapping import fullSetSize
+from Queue import Queue
+#
+# An Asynchronous loader...
+#
+from threading import Thread
+
+class AsynchLoader(Thread):
+    def __init__(self, dataManager):
+        Thread.__init__(self)
+        self.dataManager = dataManager
+
+    def run(self):
+        while True:
+            year, month, res = self.dataManager.loadQueue.get()
+            self.dataManager.loadDataSet(year, month, res)
+            self.dataManager.lockDict[(year, month, res)] = False
+            self.dataManager.loadQueue.task_done()
+
 #
 # The data manager for the visualizer.  This loads data sets on demand and unloads them
 # to keep memory usage in checkFunction
@@ -11,10 +29,16 @@ class DataManager:
         manifestFile = open(dataDirectory + '/manifest.json')
         self.rawManifest = json.loads(manifestFile.read())
         self.manifest = {}
+        self.lockDict = {}
+        self.loadQueue = Queue()
+        self.asynchronousLoader = AsynchLoader(self)
         for record in self.rawManifest:
-            self.manifest[(record['year'], record['month'], record['res'])] = dataDirectory + '/' + record['file']
+            key = (record['year'], record['month'], record['res'])
+            self.manifest[key] = dataDirectory + '/' + record['file']
             if record['res'] != 10:
                 self.loadDataSet(record['year'], record['month'], record['res'])
+            self.lockDict[key] = False
+        self.asynchronousLoader.start()
 
     def hasDataSet(self, year, month, res):
         return year in self.data and month in self.data[year] and res in self.data[year][month]
@@ -22,8 +46,9 @@ class DataManager:
     def bestResolution(self, year, month):
         if (not year in self.data) or (not month in self.data[year]):
             return None
-        resolutions = self.data[years][months].keys()
-        return resolutions.sort()[-1]
+        resolutions = self.data[year][month].keys()
+        resolutions.sort()
+        return resolutions[-1]
 
     def checkLoadable(self, year, month, res):
         return (year, month, res) in self.manifest
@@ -38,6 +63,14 @@ class DataManager:
 
     def getResolutions(self, year, month):
         return [res for (aYear, aMonth, res) in self.manifest.keys() if aYear == year and aMonth == month]
+
+    #
+    # load a data set asynchronously
+    #
+    def asynchLoad(self, year, month, res):
+        if self.lockDict[(year, month, res)]: return
+        self.lockDict[(year, month, res)] = True
+        self.loadQueue.put((year, month, res))
 
 
     #

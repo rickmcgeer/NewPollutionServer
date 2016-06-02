@@ -34,12 +34,26 @@ def checkQuery(dataManager, year, month, res, nwLat, seLat, nwLon, seLon):
         if (lon < -180 or lon > 180):
             return (False, "Longitude must be in [-180, 180], not %f" % lon)
     return (True, "OK")
+
+#
+# Pull the dataset from the data manager, returning either the data set with the
+# requested resolution, or, if that is not available but loadable, the best loaded
+# resolution and kick off the load request so the next request for this data will hit
+#
+def getBestAvailableData(dataManager, year, month, res):
+    if dataManager.hasDataSet(year, month, res):
+        return res, dataManager.getData(year, month, res)
+    bestRes = dataManager.bestResolution(year, month)
+    result = dataManager.getData(year, month, bestRes)
+    if dataManager.checkLoadable(year, month, res):
+        dataManager.asynchLoad(year, month, res)
+    return bestRes, result
 #
 # Actually Search the DB for a matching string.  No checking: call first if
 # you want this checked.  Result is a String, row-major order
 #
 def searchDB(dataManager, year, month, res, north, south, west, east):
-    dataSet = dataManager.getData(year, month, res)
+    res, dataSet = getBestAvailableData(dataManager, year, month, res)
     return getData(north, south, west, east, offsetComputers[res], dataSet)
 
 
@@ -48,7 +62,7 @@ def searchDB(dataManager, year, month, res, north, south, west, east):
 # you want this checked.  Result is a list of sequences, one per row
 #
 def searchDBReturnRows(dataManager, year, month, res, north, south, west, east, optimizeSingleRectangleCase):
-    dataSet = dataManager.getData(year, month, res)
+    res, dataSet = getBestAvailableData(dataManager, year, month, res)
     return getDataAsSequences(north, south, west, east, offsetComputers[res], dataSet, optimizeSingleRectangleCase)
 
 #
