@@ -13,7 +13,7 @@ class DataManager:
         self.manifest = {}
         for record in self.rawManifest:
             self.manifest[(record['year'], record['month'], record['res'])] = dataDirectory + '/' + record['file']
-            if record['res'] == 1:
+            if record['res'] != 10:
                 self.loadDataSet(record['year'], record['month'], record['res'])
 
     def hasDataSet(self, year, month, res):
@@ -94,7 +94,7 @@ class DataManager:
     # checkDatasetExists returns True for all loaded data sets
     #
     def checkExistenceSanityCheckReport(self, year, month, res):
-        if not dataManager.checkLoadable(year, month, res):
+        if not self.checkLoadable(year, month, res):
             print 'Error: checkDatasetExists failed for year = %d, month = %d, res = %d' % (year, month, res)
     #
     # Ensure checkDatasetExists returns True for all loaded data sets

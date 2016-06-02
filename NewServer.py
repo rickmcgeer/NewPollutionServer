@@ -92,7 +92,7 @@ def parseAndCheck(request):
     if query['error']:
         query['message'] = 'Error in request ' + query['message']
         return query
-    if (not checkDatasetExists(query['year'], query['month'], query['res'])):
+    if (not dataManager.checkLoadable(query['year'], query['month'], query['res'])):
         query['error'] = True
         query['message'] = "Dataset %s is not loaded" % convertToString(query['year'], query['month'], query['res'])
     else:
@@ -128,7 +128,8 @@ def get_inventory():
     inventory = '\n'.join(join(["year = %d, month=%d, res=%d" % tuple for tuple in dataManager.getAllLoadedKeys()]))
     print inventory
     size = '\nTotal Bytes loaded: %dMB\n' % int(round(dataManager.getSize()/1.0E6))
-    return datafileList + '\nData sets loaded\n' + inventory
+    print size
+    return loadable + '\nData sets loaded\n' + inventory + size
 
 @app.route('/get_data')
 def get_data():
