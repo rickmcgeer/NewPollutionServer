@@ -40,7 +40,7 @@ def getField(request, requestResult, fieldName, convertFunction, checkFunction):
         else:
             requestResult['error'] = True
             requestResult['message'] += 'validity check failed for field %s, value %s' % (fieldName, value)
-    except ValueError:
+    except (ValueError, TypeError):
         requestResult['error'] = True
         requestResult['message'] += 'conversion function failed for fieldName %s, not %s.  ' % (fieldName, value)
 
@@ -182,9 +182,13 @@ def print_help():
     str += '<p>/get_data_rectangle?&lt;args&gt;: get the data as a set of 5-tuple rectangles rather than as a set of strings.  In addition to'
     str += ' the usual args, if indicesOnly is given as an argument, gives row/column indices rather than lat/lon for coordinates'
     str += '<p>/help: print this message\n'
-    str += '&lt;args&gt;: swLon=&lt;longitude&gt;, neLon=&lt;longitude&gt;, swLat=&lt;latitude&gt;, neLat=&lt;latitude&gt;,'
+    str += '&lt;args&gt;: seLon=&lt;longitude&gt;, nwLon=&lt;longitude&gt;, seLat=&lt;latitude&gt;, nwLat=&lt;latitude&gt;,'
     str += 'year=&lt;year&gt;, month=&lt;1-12&gt;, res=&lt;1,2,4, or 10&gt;'
     return str
+
+@app.route('/')
+def index():
+   return print_help()
 
 if __name__ == '__main__':
     # for fileName in yearFiles:
