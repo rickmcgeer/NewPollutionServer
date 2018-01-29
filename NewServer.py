@@ -144,6 +144,13 @@ def get_data():
         'ptsPerDegree': result['pointsPerDegree'], 'base64String': result['base64String']
     })
 
+@app.route('/test_query')
+def get_query():
+    query = parseAndCheck(request)
+    if (query['error']):
+        return query['message']
+    convertDegreesToTenthsOfDegrees(query, degreeFields)
+    return json.dumps(query)
 
 @app.route('/get_data_readable')
 def get_data_readable():
@@ -179,6 +186,7 @@ def print_help():
     str += '<p>/get_data?&lt;args&gt;:get the data as a base-64 string with metadata.  See below for argument format'
     str += '<p>/get_data_readable?&lt;args&gt;:same as get_data but put the base64 string into rows for human readability'
     str += '<p>/get_times?&lt;args&gt;: get the statistics on the query'
+    str += '<p>/get_query&lt;args&gt;: parse the query and return the parsed result, used for debugging'
     str += '<p>/get_data_rectangle?&lt;args&gt;: get the data as a set of 5-tuple rectangles rather than as a set of strings.  In addition to'
     str += ' the usual args, if indicesOnly is given as an argument, gives row/column indices rather than lat/lon for coordinates'
     str += '<p>/help: print this message\n'
@@ -190,6 +198,8 @@ def print_help():
 def index():
    return print_help()
 
+from config import ssl_directive
+
 if __name__ == '__main__':
     # for fileName in yearFiles:
     #     execfile(fileName)
@@ -197,4 +207,8 @@ if __name__ == '__main__':
     # app.debug = True
 
     dataManager.checkExistenceSanityCheck()
-    app.run(host='0.0.0.0', port=port)
+
+    if (ssl_directive.use_ssl):
+        app.run(host='0.0.0.0', port = port, ssl_context = ssl_directive.ssl_context)
+    else:
+        app.run(host='0.0.0.0', port=port)
