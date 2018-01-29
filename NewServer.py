@@ -208,7 +208,7 @@ if __name__ == '__main__':
 
     dataManager.checkExistenceSanityCheck()
 
-    if (ssl_directive.use_ssl):
-        app.run(host='0.0.0.0', port = port, ssl_context = ssl_directive.ssl_context)
+    if (ssl_directive['use_ssl']):
+        app.run(host='0.0.0.0', port = port, ssl_context = ssl_directive['ssl_context'])
     else:
         app.run(host='0.0.0.0', port=port)
